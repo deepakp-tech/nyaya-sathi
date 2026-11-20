@@ -142,3 +142,30 @@ ui/             streamlit_app.py
 tests/          cases.yaml · run_tests.py · checks.py · langsmith_eval.py · smoke_test.py · outputs/
 docs/           HONESTY_AND_HALLUCINATION.md
 ```
+
+---
+
+## ☁️ Deploy (Streamlit Community Cloud, free)
+
+1. Push this repo to GitHub (`.env`, `data/` and `.chroma/` are git-ignored — never commit keys).
+2. Go to **share.streamlit.io** → *Create app* → *Deploy a public app from GitHub* → pick the repo, branch `main`,
+   main file `ui/streamlit_app.py`. Under *Advanced settings* choose Python **3.12**.
+3. Paste your keys under *Advanced settings → Secrets* (TOML). Root-level secrets become environment variables,
+   which is what `app/config.py` reads:
+   ```toml
+   LLM_PROVIDER = "groq"
+   LLM_MODEL = "openai/gpt-oss-120b"
+   LLM_FAST_MODEL = "openai/gpt-oss-20b"
+   STRUCTURED_METHOD = "json_schema"
+   STRUCTURED_STRICT = "true"
+   GROQ_API_KEY = "..."
+   SARVAM_API_KEY = "..."          # optional (voice)
+   SARVAM_TTS_MODEL = "bulbul:v3"
+   SARVAM_TTS_SPEAKER = "priya"
+   ```
+4. Deploy. The first start installs dependencies and builds the vector index automatically (a few minutes).
+
+**Notes:** `requirements.txt` installs CPU-only PyTorch so the build fits small hosts. Conversation history is
+stored in SQLite (`data/nyaya.db`); on Streamlit Community Cloud the disk is reset when the app restarts or
+redeploys, so use a host with a persistent disk (e.g. Render + disk) or swap in `langgraph-checkpoint-postgres`
+for durable history. Groq's free tier allows ~200k tokens/day for `gpt-oss-120b`.

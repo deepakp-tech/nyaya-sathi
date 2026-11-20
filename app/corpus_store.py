@@ -85,13 +85,27 @@ def _vector_store():
     except ImportError:
         return None
     emb = HuggingFaceEmbeddings(model_name=config.EMBEDDING_MODEL)
-    return Chroma(collection_name="legal_corpus", embedding_function=emb,
-                  persist_directory=config.CHROMA_DIR)
+    vs = Chroma(collection_name="legal_corpus", embedding_function=emb,
+                persist_directory=config.CHROMA_DIR)
+    # Fresh deployments (e.g. Streamlit Cloud) start without .chroma/: build the index once on first use.
+    try:
+        if not vs.get(limit=1)["ids"]:
+            _populate(vs)
+    except Exception:  # noqa: BLE001 - retrieval falls back to keyword search
+        pass
+    return vs
+
+
+def _populate(vs) -> int:
+    from langchain_core.documents import Document
+    corpus = load_corpus()
+    docs = [Document(page_content=entry_text(e), metadata={"id": e["id"]}) for e in corpus.values()]
+    vs.add_documents(docs, ids=[d.metadata["id"] for d in docs])
+    return len(docs)
 
 
 def build_index() -> int:
     """(Re)build the vector index from the corpus. Run via scripts/ingest.py."""
-    from langchain_core.documents import Document
     vs = _vector_store()
     if vs is None:
         raise RuntimeError("langchain-chroma / langchain-huggingface not installed")
@@ -101,10 +115,7 @@ def build_index() -> int:
             vs.delete(ids=existing)
     except Exception:
         pass
-    corpus = load_corpus()
-    docs = [Document(page_content=entry_text(e), metadata={"id": e["id"]}) for e in corpus.values()]
-    vs.add_documents(docs, ids=[d.metadata["id"] for d in docs])
-    return len(docs)
+    return _populate(vs)
 
 
 # ---------------------------------------------------------------- retrieval

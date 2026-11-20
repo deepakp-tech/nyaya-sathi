@@ -1,7 +1,12 @@
+# CPU-only PyTorch (the default Linux wheel pulls multi-GB CUDA libraries and breaks small hosts)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+
 # --- Orchestration / LLM ---
 langchain>=0.3
 langchain-core>=0.3
 langgraph>=0.2
+langgraph-checkpoint-sqlite   # persistent conversation history
 langsmith>=0.1
 
 # LLM providers (install all; you only need a key for the one you use)
@@ -24,4 +29,3 @@ pyyaml
 requests
 python-docx
 pypdf
-langgraph-checkpoint-sqlite
